@@ -16,6 +16,12 @@ X509_L=$3
 UZI=$4
 URA=$5
 AGB=$6
+
+if [[ -z $HOST || -z $X509_O || -z $X509_L || -z $UZI || -z $URA || -z $AGB ]]; then
+  echo Usage: $0 HOST X509_O X509_L UZI URA AGB
+  exit 1
+fi
+
 echo Generating key and certificate for $HOST
 openssl genrsa -out out/$HOST.key 2048
 openssl req -new -key out/$HOST.key -out $HOST.csr -subj "${DN_PREFIX}CN=${HOST}/O=${X509_O}/L=${X509_L}/serialNumber=${UZI}"
