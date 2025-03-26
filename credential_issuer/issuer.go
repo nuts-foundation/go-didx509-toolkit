@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
@@ -110,8 +111,16 @@ func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key *
 		}
 
 		// x5t
+		// Note: although x5t is less safe than x5t#s256 (since is uses SHA-1, which has been broken), it's in here for backwards compatibility.
 		hashSha1 := sha1.Sum(signingCert.Raw)
 		err = hdrs.Set("x5t", base64.RawURLEncoding.EncodeToString(hashSha1[:]))
+		if err != nil {
+			return "", err
+		}
+
+		// x5t#S256
+		hashSha256 := sha256.Sum256(signingCert.Raw)
+		err = hdrs.Set("x5t#S256", base64.RawURLEncoding.EncodeToString(hashSha256[:]))
 		if err != nil {
 			return "", err
 		}
