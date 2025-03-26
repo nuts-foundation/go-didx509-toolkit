@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"github.com/lestrrat-go/jwx/v2/jws"
 	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-didx509-toolkit/internal"
 	"testing"
@@ -110,6 +111,10 @@ func TestIssue(t *testing.T) {
 
 			assert.Equal(t, expectedCredentialSubject, vc.CredentialSubject)
 			assert.Equal(t, validChain[0].NotAfter, *vc.ExpirationDate, "expiration date of VC must match signing certificate")
+			parsedJWT, err := jws.Parse([]byte(vc.Raw()))
+			require.NoError(t, err)
+			assert.Equal(t, "v4nyg4rKy6MBIxnutabaUwXCxYY", parsedJWT.Signatures()[0].ProtectedHeaders().X509CertThumbprint())
+			assert.Equal(t, "XC-vUEDhKsMrtpwtYEQty5PgSj4ZphDLNDG_Rg9hQDk", parsedJWT.Signatures()[0].ProtectedHeaders().X509CertThumbprintS256())
 		})
 		t.Run("only include san/otherName", func(t *testing.T) {
 			validChain, err := internal.ParseCertificatesFromPEM([]byte(internal.TestCertificateChain))
