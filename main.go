@@ -19,7 +19,7 @@ type VC struct {
 	CAFingerprintDN   string                      `arg:"" short:"c" name:"ca_fingerprint_dn" help:"The full subject DN (distinguished name) of the CA certificate to be used as ca-fingerprint in the X.509 DID. The certificate must be present in the chain specified by certificate_file."`
 	SubjectDID        string                      `arg:"" name:"subject_did" help:"The subject DID of the Verifiable Credential."`
 	SubjectAttributes []x509_cert.SubjectTypeName `short:"s" name:"subject_attr" help:"List of X.509 subject attributes to include in the Verifiable Credential." default:"O,L"`
-	IncludePermanent  bool                        `short:"p" help:"Include the permanent identifier in the did:x509."`
+	SANAttributes     []string                    `short:"a" help:"List of SAN attributes to include in the Verifiable Credential (options: 'otherName', 'permanentIdentifier.assigner', 'permanentIdentifier.value')." default:"otherName"`
 }
 
 var _ error = InvalidCAFingerprintDNError{}
@@ -124,7 +124,10 @@ func issueVc(vc VC) (string, error) {
 		return "", err
 	}
 
-	credential, err := credential_issuer.Issue(chain, caFingerprintCert, key, vc.SubjectDID, credential_issuer.SubjectAttributes(vc.SubjectAttributes...))
+	credential, err := credential_issuer.Issue(chain, caFingerprintCert, key, vc.SubjectDID,
+		credential_issuer.SubjectAttributes(vc.SubjectAttributes...),
+		credential_issuer.SANAttributes(vc.SANAttributes...),
+	)
 
 	if err != nil {
 		return "", err

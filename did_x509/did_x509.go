@@ -49,11 +49,11 @@ func FormatDid(issuerCert *x509.Certificate, policy ...string) (*did.DID, error)
 // It extracts the Unique Registration Address (URA) from the chain, creates a policy with it, and formats the DID.
 // Returns the generated DID or an error if any step fails.
 func CreateDid(signingCert, caCert *x509.Certificate, includedSubjectTypes []x509_cert.SubjectTypeName, includedSanTypes ...x509_cert.SanTypeName) (*did.DID, error) {
-	otherNames, err := x509_cert.SelectSanTypes(signingCert, includedSanTypes...)
+	alternativeNames, err := x509_cert.SelectSanTypes(signingCert, includedSanTypes...)
 	if err != nil {
 		return nil, err
 	}
-	policies, err := formatPolicies(otherNames)
+	policies, err := formatPolicies(alternativeNames)
 	if err != nil {
 		return nil, err
 	}

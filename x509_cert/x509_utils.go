@@ -139,14 +139,14 @@ func FindSanTypes(certificate *x509.Certificate) ([]*PolicyValue, error) {
 	return rv, nil
 }
 
-func SelectSanTypes(certificate *x509.Certificate, subjectAttributes ...SanTypeName) ([]*PolicyValue, error) {
+func SelectSanTypes(certificate *x509.Certificate, sanTypes ...SanTypeName) ([]*PolicyValue, error) {
 	subjectTypes, err := FindSanTypes(certificate)
 	if err != nil {
 		return nil, err
 	}
 	var selectedSubjectTypes []*PolicyValue
 	for _, subjectType := range subjectTypes {
-		if slices.Contains(subjectAttributes, subjectType.Type) {
+		if slices.Contains(sanTypes, subjectType.Type) {
 			selectedSubjectTypes = append(selectedSubjectTypes, subjectType)
 		}
 	}

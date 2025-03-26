@@ -29,22 +29,22 @@ var CredentialType = ssi.MustParseURI("X509Credential")
 
 // issueOptions contains values for options for issuing a UZI VC.
 type issueOptions struct {
-	includePermanentIdentifier bool
-	subjectAttributes          []x509_cert.SubjectTypeName
+	subjectAttributes []x509_cert.SubjectTypeName
+	sanAttributes     []x509_cert.SanTypeName
 }
 
 // Option is an interface for a function in the options pattern.
 type Option = func(*issueOptions)
 
 var defaultIssueOptions = &issueOptions{
-	includePermanentIdentifier: false,
-	subjectAttributes:          []x509_cert.SubjectTypeName{},
+	sanAttributes:     []x509_cert.SanTypeName{x509_cert.SanTypeOtherName},
+	subjectAttributes: []x509_cert.SubjectTypeName{},
 }
 
 func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key *rsa.PrivateKey, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
-	options := defaultIssueOptions
+	options := *defaultIssueOptions
 	for _, fn := range optionFns {
-		fn(options)
+		fn(&options)
 	}
 
 	// Sanity check: make sure caFingerprintCert is in the chain
@@ -59,27 +59,22 @@ func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key *
 		return nil, errors.New("caFingerprintCert is not in the chain")
 	}
 
-	types := []x509_cert.SanTypeName{x509_cert.SanTypeOtherName}
-	if options.includePermanentIdentifier {
-		types = append(types, x509_cert.SanTypePermanentIdentifierValue)
-		types = append(types, x509_cert.SanTypePermanentIdentifierAssigner)
-	}
-
-	issuer, err := did_x509.CreateDid(chain[0], caFingerprintCert, options.subjectAttributes, types...)
+	issuer, err := did_x509.CreateDid(chain[0], caFingerprintCert, options.subjectAttributes, options.sanAttributes...)
 	if err != nil {
 		return nil, err
 	}
 	// signing cert is at the start of the chain
 	signingCert := chain[0]
-	otherNameValues, err := x509_cert.FindSanTypes(signingCert)
+	sanValues, err := x509_cert.SelectSanTypes(signingCert, options.sanAttributes...)
 	if err != nil {
 		return nil, err
 	}
+
 	subjectTypes, err := x509_cert.SelectSubjectTypes(signingCert, options.subjectAttributes...)
 	if err != nil {
 		return nil, err
 	}
-	template, err := buildCredential(*issuer, signingCert.NotAfter, otherNameValues, subjectTypes, subject)
+	template, err := buildCredential(*issuer, signingCert.NotAfter, sanValues, subjectTypes, subject)
 	if err != nil {
 		return nil, err
 	}
@@ -130,10 +125,17 @@ func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key *
 	})
 }
 
-// SubjectAttributes sets the subject attributes to include in the UZI VC.
+// SubjectAttributes sets the subject attributes to include in the DID and VC.
 func SubjectAttributes(attributes ...x509_cert.SubjectTypeName) Option {
 	return func(o *issueOptions) {
 		o.subjectAttributes = attributes
+	}
+}
+
+// SANAttributes sets whether to include the SAN permanent identifier in the DID and VC.
+func SANAttributes(attributes ...x509_cert.SanTypeName) Option {
+	return func(o *issueOptions) {
+		o.sanAttributes = attributes
 	}
 }
 
