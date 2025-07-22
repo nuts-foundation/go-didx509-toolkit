@@ -44,9 +44,17 @@ docker run --rm -v "$(pwd)/certs:/certs" nutsfoundation/go-didx509-toolkit:main 
   vc /certs/certificate-chain.pem /certs/key.pem "CN=Fake Root CA" did:web:example.com
 ```
 
-### Validating `X509Credential`s
+### Azure Key Vault Integration
 
-TODO
+You can sign using a key stored in Azure Key Vault by specifying the key URL instead of a local file as `signing_key_file`.
+The URL may include a version, e.g.:
+
+- Wih version: `https://my-key-vault.vault.azure.net/keys/my-certificate/1234567890abcdef1234567890abcdef`
+- Without version: `https://my-key-vault.vault.azure.net/keys/my-certificate`
+
+## Common errors
+
+- `failed to find path from signingCert to root`: This error indicates that the certificate chain provided does not contain a valid path to a root CA. Ensure that the certificate chain is complete and includes all necessary intermediate certificates.
 
 ## Limitations
 
