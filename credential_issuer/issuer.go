@@ -2,7 +2,7 @@ package credential_issuer
 
 import (
 	"context"
-	"crypto/rsa"
+	"crypto"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
@@ -41,7 +41,7 @@ var defaultIssueOptions = &issueOptions{
 	subjectAttributes: []x509_cert.SubjectTypeName{},
 }
 
-func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key *rsa.PrivateKey, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
+func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key crypto.Signer, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
 	options := *defaultIssueOptions
 	for _, fn := range optionFns {
 		fn(&options)
@@ -120,7 +120,7 @@ func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key *
 			return "", err
 		}
 
-		sign, err := jwt.Sign(token, jwt.WithKey(jwa.PS256, *key, jws.WithProtectedHeaders(hdrs)))
+		sign, err := jwt.Sign(token, jwt.WithKey(jwa.PS256, key, jws.WithProtectedHeaders(hdrs)))
 		return string(sign), err
 	})
 }

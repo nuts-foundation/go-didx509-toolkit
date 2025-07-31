@@ -2,19 +2,23 @@ package main
 
 import (
 	"bufio"
+	"context"
+	"crypto"
 	"crypto/x509"
 	"errors"
 	"fmt"
 	"github.com/alecthomas/kong"
 	"github.com/nuts-foundation/go-didx509-toolkit/credential_issuer"
 	"github.com/nuts-foundation/go-didx509-toolkit/internal"
+	"github.com/nuts-foundation/go-didx509-toolkit/internal/azure"
 	"github.com/nuts-foundation/go-didx509-toolkit/x509_cert"
 	"os"
+	"strings"
 )
 
 type VC struct {
 	CertificateFile string `arg:"" name:"certificate_file" help:"PEM file containing the full certificate chain." type:"existingfile"`
-	SigningKeyFile  string `arg:"" name:"signing_key_file" help:"PEM file containing the private key of the leaf certificate." type:"existingfile"`
+	SigningKeyFile  string `arg:"" name:"signing_key_file" help:"PEM file containing the private key of the leaf certificate, or a URL to a key in Azure Key Vault."`
 	// CAFingerprintDN specifies the subject DN of the certificate that should be used as did:x509 ca-fingerprint property.
 	CAFingerprintDN   string                      `arg:"" short:"c" name:"ca_fingerprint_dn" help:"The full subject DN (distinguished name) of the CA certificate to be used as ca-fingerprint in the X.509 DID. The certificate must be present in the chain specified by certificate_file."`
 	SubjectDID        string                      `arg:"" name:"subject_did" help:"The subject DID of the Verifiable Credential."`
@@ -115,11 +119,7 @@ func issueVc(vc VC) (string, error) {
 		return "", InvalidCAFingerprintDNError{Candidates: candidates}
 	}
 
-	keyFileData, err := os.ReadFile(vc.SigningKeyFile)
-	if err != nil {
-		return "", fmt.Errorf("failed to read key file: %w", err)
-	}
-	key, err := internal.ParseRSAPrivateKeyFromPEM(keyFileData)
+	key, err := parsePrivateKey(vc.SigningKeyFile)
 	if err != nil {
 		return "", err
 	}
@@ -134,4 +134,17 @@ func issueVc(vc VC) (string, error) {
 	}
 
 	return credential.Raw(), nil
+}
+
+func parsePrivateKey(keyFile string) (crypto.Signer, error) {
+	if strings.HasPrefix(keyFile, "https://") {
+		// Assume Azure Key Vault URL
+		return azure.GetSigningKey(context.Background(), keyFile, "default")
+	} else {
+		keyFileData, err := os.ReadFile(keyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read key file: %w", err)
+		}
+		return internal.ParseRSAPrivateKeyFromPEM(keyFileData)
+	}
 }
