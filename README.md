@@ -49,7 +49,7 @@ docker run --rm -v "$(pwd)/certs:/certs" nutsfoundation/go-didx509-toolkit:main 
 You can sign using a key stored in Azure Key Vault by specifying the key URL instead of a local file as `signing_key_file`.
 The URL may include a version, e.g.:
 
-- Wih version: `https://my-key-vault.vault.azure.net/keys/my-certificate/1234567890abcdef1234567890abcdef`
+- With version: `https://my-key-vault.vault.azure.net/keys/my-certificate/1234567890abcdef1234567890abcdef`
 - Without version: `https://my-key-vault.vault.azure.net/keys/my-certificate`
 
 ## Common errors
