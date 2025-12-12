@@ -65,7 +65,7 @@ func TestBuildX509Credential(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			certificates, signingKey, subject := tt.in(t)
-			_, err := Issue(certificates, certificates[2], signingKey, subject)
+			_, err := IssueX509Credential(certificates, certificates[2], signingKey, subject)
 			if tt.errorText == "" {
 				require.NoError(t, err)
 			} else {
@@ -83,7 +83,7 @@ func TestIssue(t *testing.T) {
 			validChain, err := internal.ParseCertificatesFromPEM([]byte(internal.TestCertificateChain))
 			require.NoError(t, err, "failed to parse chain")
 
-			vc, err := Issue(validChain, validChain[3], validKey, "did:example:123",
+			vc, err := IssueX509Credential(validChain, validChain[3], validKey, "did:example:123",
 				SubjectAttributes(x509_cert.SubjectTypeCountry, x509_cert.SubjectTypeOrganization, x509_cert.SubjectTypeLocality),
 				SANAttributes(x509_cert.SanTypeOtherName, x509_cert.SanTypePermanentIdentifierAssigner, x509_cert.SanTypePermanentIdentifierValue),
 			)
@@ -120,7 +120,7 @@ func TestIssue(t *testing.T) {
 			validChain, err := internal.ParseCertificatesFromPEM([]byte(internal.TestCertificateChain))
 			require.NoError(t, err, "failed to parse chain")
 
-			vc, err := Issue(validChain, validChain[3], validKey, "did:example:123")
+			vc, err := IssueX509Credential(validChain, validChain[3], validKey, "did:example:123")
 
 			require.NoError(t, err, "failed to issue verifiable credential")
 			require.NotNil(t, vc, "verifiable credential is nil")
@@ -148,7 +148,7 @@ func TestIssue(t *testing.T) {
 
 		validChain[0].Subject.Organization = []string{"FauxCare & Co"}
 
-		vc, err := Issue(validChain, validChain[3], validKey, "did:example:123", SubjectAttributes(x509_cert.SubjectTypeCountry, x509_cert.SubjectTypeOrganization))
+		vc, err := IssueX509Credential(validChain, validChain[3], validKey, "did:example:123", SubjectAttributes(x509_cert.SubjectTypeCountry, x509_cert.SubjectTypeOrganization))
 
 		assert.Equal(t, "did:x509:0:sha256:DwXSf2_jaUod7cezXBGJBM4AaaoA8DI9j7aPMDTI-mQ::san:otherName:2.16.528.1.1007.99.2110-1-1111111-S-2222222-00.000-333333::subject:O:FauxCare%20%26%20Co", vc.Issuer.String())
 	})

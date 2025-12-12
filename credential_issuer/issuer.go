@@ -8,8 +8,9 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
-	"github.com/nuts-foundation/go-didx509-toolkit/internal"
 	"time"
+
+	"github.com/nuts-foundation/go-didx509-toolkit/internal"
 
 	"github.com/nuts-foundation/go-did/did"
 
@@ -41,7 +42,7 @@ var defaultIssueOptions = &issueOptions{
 	subjectAttributes: []x509_cert.SubjectTypeName{},
 }
 
-func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key crypto.Signer, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
+func IssueX509Credential(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key crypto.Signer, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
 	options := *defaultIssueOptions
 	for _, fn := range optionFns {
 		fn(&options)
@@ -78,6 +79,10 @@ func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key c
 	if err != nil {
 		return nil, err
 	}
+	return IssueCredential(template, chain, issuer, signingCert, key)
+}
+
+func IssueCredential(template *vc.VerifiableCredential, chain []*x509.Certificate, issuerDID *did.DID, issuerSignCert *x509.Certificate, issuerSignPrivateKey crypto.Signer) (*vc.VerifiableCredential, error) {
 	return vc.CreateJWTVerifiableCredential(context.Background(), *template, func(ctx context.Context, claims map[string]interface{}, headers map[string]interface{}) (string, error) {
 		token, err := convertClaims(claims)
 		if err != nil {
@@ -89,7 +94,7 @@ func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key c
 		}
 
 		if hdrs.KeyID() == "" {
-			err := hdrs.Set("kid", issuer.String()+"#0")
+			err := hdrs.Set("kid", issuerDID.String()+"#0")
 			if err != nil {
 				return "", err
 			}
@@ -107,20 +112,20 @@ func Issue(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key c
 
 		// x5t
 		// Note: although x5t is less safe than x5t#s256 (since is uses SHA-1, which has been broken), it's in here for backwards compatibility.
-		hashSha1 := sha1.Sum(signingCert.Raw)
+		hashSha1 := sha1.Sum(issuerSignCert.Raw)
 		err = hdrs.Set("x5t", base64.RawURLEncoding.EncodeToString(hashSha1[:]))
 		if err != nil {
 			return "", err
 		}
 
 		// x5t#S256
-		hashSha256 := sha256.Sum256(signingCert.Raw)
+		hashSha256 := sha256.Sum256(issuerSignCert.Raw)
 		err = hdrs.Set("x5t#S256", base64.RawURLEncoding.EncodeToString(hashSha256[:]))
 		if err != nil {
 			return "", err
 		}
 
-		sign, err := jwt.Sign(token, jwt.WithKey(jwa.PS256, key, jws.WithProtectedHeaders(hdrs)))
+		sign, err := jwt.Sign(token, jwt.WithKey(jwa.PS256, issuerSignPrivateKey, jws.WithProtectedHeaders(hdrs)))
 		return string(sign), err
 	})
 }

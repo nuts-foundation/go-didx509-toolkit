@@ -7,13 +7,14 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/alecthomas/kong"
 	"github.com/nuts-foundation/go-didx509-toolkit/credential_issuer"
 	"github.com/nuts-foundation/go-didx509-toolkit/internal"
 	"github.com/nuts-foundation/go-didx509-toolkit/internal/azure"
 	"github.com/nuts-foundation/go-didx509-toolkit/x509_cert"
-	"os"
-	"strings"
 )
 
 type VC struct {
@@ -124,7 +125,7 @@ func issueVc(vc VC) (string, error) {
 		return "", err
 	}
 
-	credential, err := credential_issuer.Issue(chain, caFingerprintCert, key, vc.SubjectDID,
+	credential, err := credential_issuer.IssueX509Credential(chain, caFingerprintCert, key, vc.SubjectDID,
 		credential_issuer.SubjectAttributes(vc.SubjectAttributes...),
 		credential_issuer.SANAttributes(vc.SANAttributes...),
 	)
