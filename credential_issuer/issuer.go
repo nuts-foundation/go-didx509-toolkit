@@ -75,15 +75,12 @@ func IssueX509Credential(chain []*x509.Certificate, caFingerprintCert *x509.Cert
 	if err != nil {
 		return nil, err
 	}
-	template, err := buildCredential(*issuer, signingCert.NotAfter, sanValues, subjectTypes, subject)
-	if err != nil {
-		return nil, err
-	}
-	return IssueCredential(template, chain, issuer, signingCert, key)
+	template := Template(*issuer, signingCert.NotAfter, sanValues, subjectTypes, subject)
+	return IssueCredential(template, chain, issuer, signingCert, key, jwa.PS256)
 }
 
-func IssueCredential(template *vc.VerifiableCredential, chain []*x509.Certificate, issuerDID *did.DID, issuerSignCert *x509.Certificate, issuerSignPrivateKey crypto.Signer) (*vc.VerifiableCredential, error) {
-	return vc.CreateJWTVerifiableCredential(context.Background(), *template, func(ctx context.Context, claims map[string]interface{}, headers map[string]interface{}) (string, error) {
+func IssueCredential(template vc.VerifiableCredential, chain []*x509.Certificate, issuerDID *did.DID, issuerSignCert *x509.Certificate, issuerSignPrivateKey crypto.Signer, alg jwa.SignatureAlgorithm) (*vc.VerifiableCredential, error) {
+	return vc.CreateJWTVerifiableCredential(context.Background(), template, func(ctx context.Context, claims map[string]interface{}, headers map[string]interface{}) (string, error) {
 		token, err := convertClaims(claims)
 		if err != nil {
 			return "", err
@@ -125,7 +122,7 @@ func IssueCredential(template *vc.VerifiableCredential, chain []*x509.Certificat
 			return "", err
 		}
 
-		sign, err := jwt.Sign(token, jwt.WithKey(jwa.PS256, issuerSignPrivateKey, jws.WithProtectedHeaders(hdrs)))
+		sign, err := jwt.Sign(token, jwt.WithKey(alg, issuerSignPrivateKey, jws.WithProtectedHeaders(hdrs)))
 		return string(sign), err
 	})
 }
@@ -181,7 +178,7 @@ func convertHeaders(headers map[string]interface{}) (jws.Headers, error) {
 	return hdr, nil
 }
 
-func buildCredential(issuerDID did.DID, expirationDate time.Time, otherNameValues []*x509_cert.PolicyValue, subjectTypes []*x509_cert.PolicyValue, subjectDID string) (*vc.VerifiableCredential, error) {
+func Template(issuerDID did.DID, expirationDate time.Time, otherNameValues []*x509_cert.PolicyValue, subjectTypes []*x509_cert.PolicyValue, subjectDID string) vc.VerifiableCredential {
 	iat := time.Now()
 	subject := map[string]interface{}{
 		"id": subjectDID,
@@ -206,13 +203,13 @@ func buildCredential(issuerDID did.DID, expirationDate time.Time, otherNameValue
 		DID:      issuerDID,
 		Fragment: uuid.NewString(),
 	}.URI()
-	return &vc.VerifiableCredential{
+	return vc.VerifiableCredential{
 		Issuer:            issuerDID.URI(),
 		Context:           []ssi.URI{ssi.MustParseURI("https://www.w3.org/2018/credentials/v1")},
 		Type:              []ssi.URI{ssi.MustParseURI("VerifiableCredential"), CredentialType},
 		ID:                &id,
 		IssuanceDate:      iat,
 		ExpirationDate:    &expirationDate,
-		CredentialSubject: []interface{}{subject},
-	}, nil
+		CredentialSubject: []map[string]any{subject},
+	}
 }
