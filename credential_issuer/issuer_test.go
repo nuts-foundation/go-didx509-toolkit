@@ -4,10 +4,11 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"testing"
+
 	"github.com/lestrrat-go/jwx/v2/jws"
 	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-didx509-toolkit/internal"
-	"testing"
 
 	"github.com/nuts-foundation/go-didx509-toolkit/x509_cert"
 	"github.com/stretchr/testify/assert"
@@ -96,7 +97,7 @@ func TestIssue(t *testing.T) {
 			assert.True(t, vc.IsType(ssi.MustParseURI("X509Credential")))
 			assert.Equal(t, "did:x509:0:sha256:DwXSf2_jaUod7cezXBGJBM4AaaoA8DI9j7aPMDTI-mQ::san:otherName:2.16.528.1.1007.99.2110-1-1111111-S-2222222-00.000-333333:permanentIdentifier.assigner:2.16.528.1.1007.3.3:permanentIdentifier.value:2222222::subject:L:Testland:O:Faux%20Care", vc.Issuer.String())
 
-			expectedCredentialSubject := []interface{}{map[string]interface{}{
+			expectedCredentialSubject := []map[string]any{{
 				"id": "did:example:123",
 				"subject": map[string]interface{}{
 					"O": "Faux Care",
@@ -130,7 +131,7 @@ func TestIssue(t *testing.T) {
 			assert.True(t, vc.IsType(ssi.MustParseURI("X509Credential")))
 			assert.Equal(t, "did:x509:0:sha256:DwXSf2_jaUod7cezXBGJBM4AaaoA8DI9j7aPMDTI-mQ::san:otherName:2.16.528.1.1007.99.2110-1-1111111-S-2222222-00.000-333333", vc.Issuer.String())
 
-			expectedCredentialSubject := []interface{}{map[string]interface{}{
+			expectedCredentialSubject := []map[string]interface{}{{
 				"id": "did:example:123",
 				"san": map[string]interface{}{
 					"otherName": "2.16.528.1.1007.99.2110-1-1111111-S-2222222-00.000-333333",
