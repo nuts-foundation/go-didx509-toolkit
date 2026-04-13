@@ -17,12 +17,18 @@ import (
 	"github.com/nuts-foundation/go-didx509-toolkit/x509_cert"
 )
 
+const (
+	credentialTypeX509                   = "X509Credential"
+	credentialTypeHealthcareOrganization = "HealthcareOrganizationCredential"
+)
+
 type VC struct {
 	CertificateFile string `arg:"" name:"certificate_file" help:"PEM file containing the full certificate chain." type:"existingfile"`
 	SigningKeyFile  string `arg:"" name:"signing_key_file" help:"PEM file containing the private key of the leaf certificate, or a URL to a key in Azure Key Vault."`
 	// CAFingerprintDN specifies the subject DN of the certificate that should be used as did:x509 ca-fingerprint property.
 	CAFingerprintDN   string                      `arg:"" short:"c" name:"ca_fingerprint_dn" help:"The full subject DN (distinguished name) of the CA certificate to be used as ca-fingerprint in the X.509 DID. The certificate must be present in the chain specified by certificate_file."`
 	SubjectDID        string                      `arg:"" name:"subject_did" help:"The subject DID of the Verifiable Credential."`
+	Type              string                      `name:"type" short:"t" help:"Type of Verifiable Credential to issue (options: 'X509Credential', 'HealthcareOrganizationCredential')." default:"X509Credential" enum:"X509Credential,HealthcareOrganizationCredential"`
 	SubjectAttributes []x509_cert.SubjectTypeName `short:"s" name:"subject_attr" help:"List of X.509 subject attributes to include in the Verifiable Credential." default:"O,L"`
 	SANAttributes     []string                    `short:"a" help:"List of SAN attributes to include in the Verifiable Credential (options: 'otherName', 'permanentIdentifier.assigner', 'permanentIdentifier.value')." default:"otherName"`
 }
@@ -39,7 +45,7 @@ func (i InvalidCAFingerprintDNError) Error() string {
 
 var CLI struct {
 	Version string `help:"Show version."`
-	Vc      VC     `cmd:"" help:"Create a new VC."`
+	Vc      VC     `cmd:"" help:"Create a new Verifiable Credential."`
 }
 
 func main() {
@@ -93,48 +99,67 @@ func printLineAndFlush(jwt string) error {
 }
 
 func issueVc(vc VC) (string, error) {
-	certFileData, err := os.ReadFile(vc.CertificateFile)
-	if err != nil {
-		return "", fmt.Errorf("failed to read certificate file: %w", err)
-	}
-	certs, err := internal.ParseCertificatesFromPEM(certFileData)
-	if err != nil {
-		return "", err
-	}
-	chain, err := internal.ParseCertificateChain(certs)
+	chain, caFingerprintCert, key, err := loadChainAndKey(vc.CertificateFile, vc.SigningKeyFile, vc.CAFingerprintDN)
 	if err != nil {
 		return "", err
 	}
 
-	// Select ca-fingerprint certificate
+	switch vc.Type {
+	case credentialTypeX509:
+		credential, err := credential_issuer.IssueX509Credential(chain, caFingerprintCert, key, vc.SubjectDID,
+			credential_issuer.SubjectAttributes(vc.SubjectAttributes...),
+			credential_issuer.SANAttributes(vc.SANAttributes...),
+		)
+		if err != nil {
+			return "", err
+		}
+		return credential.Raw(), nil
+	case credentialTypeHealthcareOrganization:
+		credential, err := credential_issuer.IssueHealthcareOrganizationCredential(chain, caFingerprintCert, key, vc.SubjectDID,
+			credential_issuer.SubjectAttributes(vc.SubjectAttributes...),
+			credential_issuer.SANAttributes(vc.SANAttributes...),
+		)
+		if err != nil {
+			return "", err
+		}
+		return credential.Raw(), nil
+	default:
+		return "", fmt.Errorf("unsupported credential type: %s", vc.Type)
+	}
+}
+
+func loadChainAndKey(certificateFile, signingKeyFile, caFingerprintDN string) ([]*x509.Certificate, *x509.Certificate, crypto.Signer, error) {
+	certFileData, err := os.ReadFile(certificateFile)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to read certificate file: %w", err)
+	}
+	certs, err := internal.ParseCertificatesFromPEM(certFileData)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	chain, err := internal.ParseCertificateChain(certs)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	var caFingerprintCert *x509.Certificate
 	var candidates []string
 	for _, candidate := range chain {
-		if candidate.Subject.String() == vc.CAFingerprintDN {
+		if candidate.Subject.String() == caFingerprintDN {
 			caFingerprintCert = candidate
 			break
 		}
 		candidates = append(candidates, candidate.Subject.String())
 	}
 	if caFingerprintCert == nil {
-		return "", InvalidCAFingerprintDNError{Candidates: candidates}
+		return nil, nil, nil, InvalidCAFingerprintDNError{Candidates: candidates}
 	}
 
-	key, err := parsePrivateKey(vc.SigningKeyFile)
+	key, err := parsePrivateKey(signingKeyFile)
 	if err != nil {
-		return "", err
+		return nil, nil, nil, err
 	}
-
-	credential, err := credential_issuer.IssueX509Credential(chain, caFingerprintCert, key, vc.SubjectDID,
-		credential_issuer.SubjectAttributes(vc.SubjectAttributes...),
-		credential_issuer.SANAttributes(vc.SANAttributes...),
-	)
-
-	if err != nil {
-		return "", err
-	}
-
-	return credential.Raw(), nil
+	return chain, caFingerprintCert, key, nil
 }
 
 func parsePrivateKey(keyFile string) (crypto.Signer, error) {

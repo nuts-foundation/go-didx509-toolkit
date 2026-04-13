@@ -42,13 +42,14 @@ var defaultIssueOptions = &issueOptions{
 	subjectAttributes: []x509_cert.SubjectTypeName{},
 }
 
-func IssueX509Credential(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key crypto.Signer, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
+// resolveIssuer applies option functions, verifies caFingerprintCert is part of the chain,
+// and returns the did:x509 issuer DID and the resolved options.
+func resolveIssuer(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, optionFns ...Option) (*did.DID, issueOptions, error) {
 	options := *defaultIssueOptions
 	for _, fn := range optionFns {
 		fn(&options)
 	}
 
-	// Sanity check: make sure caFingerprintCert is in the chain
 	caFingerprintCertPresent := false
 	for _, curr := range chain {
 		if curr.Equal(caFingerprintCert) {
@@ -57,10 +58,18 @@ func IssueX509Credential(chain []*x509.Certificate, caFingerprintCert *x509.Cert
 		}
 	}
 	if !caFingerprintCertPresent {
-		return nil, errors.New("caFingerprintCert is not in the chain")
+		return nil, options, errors.New("caFingerprintCert is not in the chain")
 	}
 
 	issuer, err := did_x509.CreateDid(chain[0], caFingerprintCert, options.subjectAttributes, options.sanAttributes...)
+	if err != nil {
+		return nil, options, err
+	}
+	return issuer, options, nil
+}
+
+func IssueX509Credential(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key crypto.Signer, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
+	issuer, options, err := resolveIssuer(chain, caFingerprintCert, optionFns...)
 	if err != nil {
 		return nil, err
 	}
