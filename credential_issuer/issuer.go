@@ -42,9 +42,9 @@ var defaultIssueOptions = &issueOptions{
 	subjectAttributes: []x509_cert.SubjectTypeName{},
 }
 
-// resolveIssuer applies option functions, verifies caFingerprintCert is part of the chain,
+// resolveIssuerAndOptions applies option functions, verifies caFingerprintCert is part of the chain,
 // and returns the did:x509 issuer DID and the resolved options.
-func resolveIssuer(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, optionFns ...Option) (*did.DID, issueOptions, error) {
+func resolveIssuerAndOptions(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, optionFns ...Option) (*did.DID, issueOptions, error) {
 	options := *defaultIssueOptions
 	for _, fn := range optionFns {
 		fn(&options)
@@ -66,26 +66,6 @@ func resolveIssuer(chain []*x509.Certificate, caFingerprintCert *x509.Certificat
 		return nil, options, err
 	}
 	return issuer, options, nil
-}
-
-func IssueX509Credential(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key crypto.Signer, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
-	issuer, options, err := resolveIssuer(chain, caFingerprintCert, optionFns...)
-	if err != nil {
-		return nil, err
-	}
-	// signing cert is at the start of the chain
-	signingCert := chain[0]
-	sanValues, err := x509_cert.SelectSanTypes(signingCert, options.sanAttributes...)
-	if err != nil {
-		return nil, err
-	}
-
-	subjectTypes, err := x509_cert.SelectSubjectTypes(signingCert, options.subjectAttributes...)
-	if err != nil {
-		return nil, err
-	}
-	template := Template(*issuer, signingCert.NotAfter, sanValues, subjectTypes, subject)
-	return IssueCredential(template, chain, issuer, signingCert, key, jwa.PS256)
 }
 
 func IssueCredential(template vc.VerifiableCredential, chain []*x509.Certificate, issuerDID *did.DID, issuerSignCert *x509.Certificate, issuerSignPrivateKey crypto.Signer, alg jwa.SignatureAlgorithm) (*vc.VerifiableCredential, error) {
