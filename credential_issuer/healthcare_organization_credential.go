@@ -54,8 +54,8 @@ func IssueHealthcareOrganizationCredential(chain []*x509.Certificate, caFingerpr
 	return IssueCredential(template, chain, issuer, signingCert, key, jwa.PS256)
 }
 
-// ExtractURA extracts the URA (Unieke Registratie Aanduiding) from the UZI otherName SAN value of the certificate.
-// The UZI otherName value follows the format: 2.16.528.1.1007.99.2110-1-<UZI>-S-<URA>-<AGB>, where URA is the 5th dash-separated part.
+// ExtractURA extracts the URA from the UZI otherName SAN value of the certificate.
+// The UZI otherName value follows the format: 2.16.528.1.1007.99.2110-1-<UZI>-S-<URA>-<ROLE-CODE>-<AGB>, where URA is the 5th dash-separated part.
 func ExtractURA(cert *x509.Certificate) (string, error) {
 	sanTypes, err := x509_cert.FindSanTypes(cert)
 	if err != nil {
