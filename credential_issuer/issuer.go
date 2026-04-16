@@ -113,7 +113,7 @@ func IssueCredential(template vc.VerifiableCredential, chain []*x509.Certificate
 
 		sign, err := jwt.Sign(token, jwt.WithKey(alg, issuerSignPrivateKey, jws.WithProtectedHeaders(hdrs)))
 		return string(sign), err
-	})
+	}, vc.WithCredentialSubjectAsObject())
 }
 
 // SubjectAttributes sets the subject attributes to include in the DID and VC.

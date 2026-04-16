@@ -1,8 +1,10 @@
 package credential_issuer
 
 import (
+	"encoding/json"
 	"testing"
 
+	"github.com/lestrrat-go/jwx/v2/jws"
 	ssi "github.com/nuts-foundation/go-did"
 	"github.com/nuts-foundation/go-didx509-toolkit/internal"
 	"github.com/stretchr/testify/assert"
@@ -35,4 +37,17 @@ func TestIssueHealthcareOrganizationCredential(t *testing.T) {
 	}}
 	assert.Equal(t, expectedSubject, credential.CredentialSubject)
 	assert.Equal(t, chain[0].NotAfter, *credential.ExpirationDate)
+
+	t.Run("credentialSubject is serialized as a JSON object, not an array", func(t *testing.T) {
+		parsed, err := jws.Parse([]byte(credential.Raw()))
+		require.NoError(t, err)
+		var payload struct {
+			VC struct {
+				CredentialSubject json.RawMessage `json:"credentialSubject"`
+			} `json:"vc"`
+		}
+		require.NoError(t, json.Unmarshal(parsed.Payload(), &payload))
+		require.NotEmpty(t, payload.VC.CredentialSubject)
+		assert.Equal(t, byte('{'), payload.VC.CredentialSubject[0], "credentialSubject must be a JSON object, got: %s", string(payload.VC.CredentialSubject))
+	})
 }

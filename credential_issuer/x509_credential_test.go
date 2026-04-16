@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"testing"
 
 	"github.com/lestrrat-go/jwx/v2/jws"
@@ -116,6 +117,15 @@ func TestIssue(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, "v4nyg4rKy6MBIxnutabaUwXCxYY", parsedJWT.Signatures()[0].ProtectedHeaders().X509CertThumbprint())
 			assert.Equal(t, "XC-vUEDhKsMrtpwtYEQty5PgSj4ZphDLNDG_Rg9hQDk", parsedJWT.Signatures()[0].ProtectedHeaders().X509CertThumbprintS256())
+
+			var payload struct {
+				VC struct {
+					CredentialSubject json.RawMessage `json:"credentialSubject"`
+				} `json:"vc"`
+			}
+			require.NoError(t, json.Unmarshal(parsedJWT.Payload(), &payload))
+			require.NotEmpty(t, payload.VC.CredentialSubject)
+			assert.Equal(t, byte('{'), payload.VC.CredentialSubject[0], "credentialSubject must be a JSON object, got: %s", string(payload.VC.CredentialSubject))
 		})
 		t.Run("only include san/otherName", func(t *testing.T) {
 			validChain, err := internal.ParseCertificatesFromPEM([]byte(internal.TestCertificateChain))
