@@ -31,12 +31,12 @@ To issue an `X509Credential`, provide the following parameters:
 
 Usage:
 ```shell
-./issuer vc <certificate_file> <signing_key_file> <ca_fingerprint_dn> <credential_subject>
+./didx509-toolkit vc <certificate_file> <signing_key_file> <ca_fingerprint_dn> <credential_subject>
 ```
 
 Example:
 ```shell
-./issuer vc certificate-chain.pem key.pem "CN=Fake Root CA"  did:web:example.com
+./didx509-toolkit vc certificate-chain.pem key.pem "CN=Fake Root CA"  did:web:example.com
 ```
 
 Using Docker (given your PEM files are in a directory called `certs`):
@@ -53,7 +53,7 @@ The URA is parsed from the UZI `otherName` SAN value of the signing certificate,
 certificate subject's `O` (Organization) attribute:
 
 ```shell
-./issuer vc \
+./didx509-toolkit vc \
   --type HealthcareOrganizationCredential \
   certificate-chain.pem key.pem "CN=Fake Root CA" did:web:ziekenhuis-voorbeeld.nl
 ```
