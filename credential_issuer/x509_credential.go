@@ -10,7 +10,8 @@ import (
 )
 
 func IssueX509Credential(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key crypto.Signer, subject string, optionFns ...Option) (*vc.VerifiableCredential, error) {
-	issuer, options, err := resolveIssuerAndOptions(chain, caFingerprintCert, optionFns...)
+	options := resolveOptions(optionFns...)
+	issuer, err := resolveIssuer(chain, caFingerprintCert, options)
 	if err != nil {
 		return nil, err
 	}

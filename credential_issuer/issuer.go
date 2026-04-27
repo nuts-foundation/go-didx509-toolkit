@@ -28,7 +28,7 @@ import (
 // CredentialType holds the name of the X.509 credential type.
 var CredentialType = ssi.MustParseURI("X509Credential")
 
-// issueOptions contains values for options for issuing a UZI VC.
+// issueOptions contains values for options for issuing a credential.
 type issueOptions struct {
 	subjectAttributes []x509_cert.SubjectTypeName
 	sanAttributes     []x509_cert.SanTypeName
@@ -42,14 +42,17 @@ var defaultIssueOptions = &issueOptions{
 	subjectAttributes: []x509_cert.SubjectTypeName{},
 }
 
-// resolveIssuerAndOptions applies option functions, verifies caFingerprintCert is part of the chain,
-// and returns the did:x509 issuer DID and the resolved options.
-func resolveIssuerAndOptions(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, optionFns ...Option) (*did.DID, issueOptions, error) {
+// resolveOptions applies option functions on top of the default options.
+func resolveOptions(optionFns ...Option) issueOptions {
 	options := *defaultIssueOptions
 	for _, fn := range optionFns {
 		fn(&options)
 	}
+	return options
+}
 
+// resolveIssuer verifies caFingerprintCert is part of the chain and returns the did:x509 issuer DID.
+func resolveIssuer(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, options issueOptions) (*did.DID, error) {
 	caFingerprintCertPresent := false
 	for _, curr := range chain {
 		if curr.Equal(caFingerprintCert) {
@@ -58,14 +61,9 @@ func resolveIssuerAndOptions(chain []*x509.Certificate, caFingerprintCert *x509.
 		}
 	}
 	if !caFingerprintCertPresent {
-		return nil, options, errors.New("caFingerprintCert is not in the chain")
+		return nil, errors.New("caFingerprintCert is not in the chain")
 	}
-
-	issuer, err := did_x509.CreateDid(chain[0], caFingerprintCert, options.subjectAttributes, options.sanAttributes...)
-	if err != nil {
-		return nil, options, err
-	}
-	return issuer, options, nil
+	return did_x509.CreateDid(chain[0], caFingerprintCert, options.subjectAttributes, options.sanAttributes...)
 }
 
 func IssueCredential(template vc.VerifiableCredential, chain []*x509.Certificate, issuerDID *did.DID, issuerSignCert *x509.Certificate, issuerSignPrivateKey crypto.Signer, alg jwa.SignatureAlgorithm) (*vc.VerifiableCredential, error) {
@@ -116,14 +114,16 @@ func IssueCredential(template vc.VerifiableCredential, chain []*x509.Certificate
 	}, vc.WithCredentialSubjectAsObject())
 }
 
-// SubjectAttributes sets the subject attributes to include in the DID and VC.
+// SubjectAttributes sets which subject attributes from the signing certificate are included in the issuer did:x509
+// (and, for X509Credential, the credential subject).
 func SubjectAttributes(attributes ...x509_cert.SubjectTypeName) Option {
 	return func(o *issueOptions) {
 		o.subjectAttributes = attributes
 	}
 }
 
-// SANAttributes sets whether to include the SAN permanent identifier in the DID and VC.
+// SANAttributes sets which SAN attributes from the signing certificate are included in the issuer did:x509
+// (and, for X509Credential, the credential subject).
 func SANAttributes(attributes ...x509_cert.SanTypeName) Option {
 	return func(o *issueOptions) {
 		o.sanAttributes = attributes

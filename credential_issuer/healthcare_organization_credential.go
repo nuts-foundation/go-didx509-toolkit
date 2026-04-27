@@ -27,7 +27,7 @@ var HealthcareOrganizationCredentialContext = ssi.MustParseURI("https://vzvz.nl/
 // - URA is extracted from the SAN otherName UZI value
 // - organization name is taken from the subject's O (Organization) attribute
 func IssueHealthcareOrganizationCredential(chain []*x509.Certificate, caFingerprintCert *x509.Certificate, key crypto.Signer, subjectDID string, optionFns ...Option) (*vc.VerifiableCredential, error) {
-	issuer, _, err := resolveIssuerAndOptions(chain, caFingerprintCert, optionFns...)
+	issuer, err := resolveIssuer(chain, caFingerprintCert, resolveOptions(optionFns...))
 	if err != nil {
 		return nil, err
 	}

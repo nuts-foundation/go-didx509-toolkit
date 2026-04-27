@@ -15,7 +15,7 @@ lint:
 test:
 	go test ./...
 
-OUTPUT ?= "$(shell pwd)/issuer"
+OUTPUT ?= "$(shell pwd)/didx509-toolkit"
 build:
 	go build -ldflags="-w -s" -o "${OUTPUT}"
 
