@@ -7,6 +7,7 @@
 
 This is a Golang-based toolkit for creating `did:x509` DIDs and `X509Credential`s.
 `X509Credential`s can be used present the identity information contained in the `did:x509` DID as Verifiable Credential.
+The toolkit can also issue `HealthcareOrganizationCredential`s, which attest to the identity of a healthcare organization (name and URA).
 
 Its original purpose is to create Verifiable Credentials from certificates issued by the [UZI certificate chain from the CIBG registry](https://www.zorgcsp.nl/ca-certificaten).
 
@@ -30,18 +31,60 @@ To issue an `X509Credential`, provide the following parameters:
 
 Usage:
 ```shell
-./issuer vc <certificate_file> <signing_key_file> <ca_fingerprint_dn> <credential_subject>
+./didx509-toolkit vc <certificate_file> <signing_key_file> <ca_fingerprint_dn> <credential_subject>
 ```
 
 Example:
 ```shell
-./issuer vc certificate-chain.pem key.pem "CN=Fake Root CA"  did:web:example.com
+./didx509-toolkit vc certificate-chain.pem key.pem "CN=Fake Root CA"  did:web:example.com
 ```
 
 Using Docker (given your PEM files are in a directory called `certs`):
 ```shell
 docker run --rm -v "$(pwd)/certs:/certs" nutsfoundation/go-didx509-toolkit:main \
   vc /certs/certificate-chain.pem /certs/key.pem "CN=Fake Root CA" did:web:example.com
+```
+
+### Issuing `HealthcareOrganizationCredential`s
+
+A `HealthcareOrganizationCredential` attests to the identity of a healthcare organization (name and URA).
+It is issued using the same `vc` subcommand with `--type HealthcareOrganizationCredential`.
+The URA is parsed from the UZI `otherName` SAN value of the signing certificate, and the organization name is taken from the
+certificate subject's `O` (Organization) attribute:
+
+```shell
+./didx509-toolkit vc \
+  --type HealthcareOrganizationCredential \
+  certificate-chain.pem key.pem "CN=Fake Root CA" did:web:ziekenhuis-voorbeeld.nl
+```
+
+Example of the decoded JWT payload:
+
+```json
+{
+  "iss": "did:x509:0:sha256:WE4P5dd8DnLHSkyHaIjhp4udlkF9LqoKwCvu9gl38jk::subject:O:Autoriteit::san:otherName:00000000",
+  "sub": "did:web:ziekenhuis-voorbeeld.nl",
+  "nbf": 1733011200,
+  "exp": 1764547200,
+  "jti": "urn:uuid:3e671c46-7a3b-4c1e-9b2a-4f8e6d2c1a5b",
+  "vc": {
+    "@context": [
+      "https://www.w3.org/2018/credentials/v1",
+      "https://vzvz.nl/credentials/v1"
+    ],
+    "type": [
+      "VerifiableCredential",
+      "HealthcareOrganizationCredential"
+    ],
+    "credentialSubject": {
+      "id": "did:web:ziekenhuis-voorbeeld.nl",
+      "organization": {
+        "ura": "12345678",
+        "name": "Ziekenhuis Voorbeeld"
+      }
+    }
+  }
+}
 ```
 
 ### Azure Key Vault Integration
