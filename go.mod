@@ -1,6 +1,6 @@
 module github.com/nuts-foundation/go-didx509-toolkit
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.1
