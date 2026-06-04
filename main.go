@@ -20,6 +20,7 @@ import (
 const (
 	credentialTypeX509                   = "X509Credential"
 	credentialTypeHealthcareOrganization = "HealthcareOrganizationCredential"
+	credentialTypeHealthcareProvider     = "HealthcareProviderCredential"
 )
 
 type VC struct {
@@ -28,7 +29,7 @@ type VC struct {
 	// CAFingerprintDN specifies the subject DN of the certificate that should be used as did:x509 ca-fingerprint property.
 	CAFingerprintDN   string                      `arg:"" short:"c" name:"ca_fingerprint_dn" help:"The full subject DN (distinguished name) of the CA certificate to be used as ca-fingerprint in the X.509 DID. The certificate must be present in the chain specified by certificate_file."`
 	SubjectDID        string                      `arg:"" name:"subject_did" help:"The subject DID of the Verifiable Credential."`
-	Type              string                      `name:"type" short:"t" help:"Type of Verifiable Credential to issue (options: 'X509Credential', 'HealthcareOrganizationCredential')." default:"X509Credential" enum:"X509Credential,HealthcareOrganizationCredential"`
+	Type              string                      `name:"type" short:"t" help:"Type of Verifiable Credential to issue (options: 'X509Credential', 'HealthcareOrganizationCredential', 'HealthcareProviderCredential')." default:"X509Credential" enum:"X509Credential,HealthcareOrganizationCredential,HealthcareProviderCredential"`
 	SubjectAttributes []x509_cert.SubjectTypeName `short:"s" name:"subject_attr" help:"List of X.509 subject attributes to include in the Verifiable Credential." default:"O,L"`
 	SANAttributes     []string                    `short:"a" help:"List of SAN attributes to include in the Verifiable Credential (options: 'otherName', 'permanentIdentifier.assigner', 'permanentIdentifier.value')." default:"otherName"`
 }
@@ -116,6 +117,15 @@ func issueVc(vc VC) (string, error) {
 		return credential.Raw(), nil
 	case credentialTypeHealthcareOrganization:
 		credential, err := credential_issuer.IssueHealthcareOrganizationCredential(chain, caFingerprintCert, key, vc.SubjectDID,
+			credential_issuer.SubjectAttributes(vc.SubjectAttributes...),
+			credential_issuer.SANAttributes(vc.SANAttributes...),
+		)
+		if err != nil {
+			return "", err
+		}
+		return credential.Raw(), nil
+	case credentialTypeHealthcareProvider:
+		credential, err := credential_issuer.IssueHealthcareProviderCredential(chain, caFingerprintCert, key, vc.SubjectDID,
 			credential_issuer.SubjectAttributes(vc.SubjectAttributes...),
 			credential_issuer.SANAttributes(vc.SANAttributes...),
 		)
