@@ -54,7 +54,9 @@ func IssueHealthcareProviderCredential(chain []*x509.Certificate, caFingerprintC
 		return nil, fmt.Errorf("certificate subject does not contain an Organization (O) attribute")
 	}
 	template := HealthcareProviderTemplate(*issuer, signingCert.NotAfter, subjectDID, ura, organizationName)
-	return IssueCredential(template, chain, issuer, signingCert, key, jwa.PS256)
+	// RS256: UZI/PKIoverheid certificates are RSA and the AORTA ecosystem expects
+	// RS256 (RSA PKCS#1 v1.5), not PS256 (RSA-PSS).
+	return IssueCredential(template, chain, issuer, signingCert, key, jwa.RS256)
 }
 
 // HealthcareProviderTemplate builds a HealthcareProviderCredential template per the AORTA-on-FHIR spec:
