@@ -9,7 +9,7 @@ require (
 	github.com/alecthomas/kong v1.12.1
 	github.com/google/uuid v1.6.0
 	github.com/lestrrat-go/jwx/v2 v2.1.6
-	github.com/nuts-foundation/go-did v0.19.0
+	github.com/nuts-foundation/go-did v0.21.0
 	github.com/stretchr/testify v1.11.1
 )
 
