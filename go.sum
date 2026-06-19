@@ -61,8 +61,8 @@ github.com/multiformats/go-base36 v0.2.0 h1:lFsAbNOGeKtuKozrtBsAkSVhv1p9D0/qedU9
 github.com/multiformats/go-base36 v0.2.0/go.mod h1:qvnKE++v+2MWCfePClUEjE78Z7P2a1UV0xHgWc0hkp4=
 github.com/multiformats/go-multibase v0.2.0 h1:isdYCVLvksgWlMW9OZRYJEa9pZETFivncJHmHnnd87g=
 github.com/multiformats/go-multibase v0.2.0/go.mod h1:bFBZX4lKCA/2lyOFSAoKH5SS6oPyjtnzK/XTFDPkNuk=
-github.com/nuts-foundation/go-did v0.19.0 h1:8QILQoHuzuwMoi35Etnz8Zho0R5kdXnOmPqtt0g2LlI=
-github.com/nuts-foundation/go-did v0.19.0/go.mod h1:4od1gAmCi9HjHTQGEvHC8pLeuXdXACxidAcdA52YScc=
+github.com/nuts-foundation/go-did v0.21.0 h1:jQAr6O8afgVp88Rkwnfl1m5E0b0L0KTkSqM5iDnq0fw=
+github.com/nuts-foundation/go-did v0.21.0/go.mod h1:4od1gAmCi9HjHTQGEvHC8pLeuXdXACxidAcdA52YScc=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c h1:+mdjkGKdHQG3305AYmdv1U2eRNDiU2ErMBj1gwrq8eQ=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c/go.mod h1:7rwL4CYBLnjLxUqIJNnCWiEdr3bn6IUYi15bNlnbCCU=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
